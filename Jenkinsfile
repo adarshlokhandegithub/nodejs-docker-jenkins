@@ -32,18 +32,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Deploy to Azure Web App') {
-            steps {
-                script {
-                    // Deploy Docker image to Azure Web App
-                    sh "az webapp config container set --name ${webAppName} --resource-group ${resourceGroupName} --docker-custom-image-name ${registry}/${imageName}:${env.BUILD_NUMBER}"
-
-                    // Restart Azure Web App to apply changes
-                    sh "az webapp restart --name ${webAppName} --resource-group ${resourceGroupName}"
-                }
-            }
-        }
     } 
     
     post {
