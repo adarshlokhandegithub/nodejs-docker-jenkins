@@ -3,11 +3,11 @@ pipeline {
     
     environment {
         registryCredential = 'ACR' // Credential ID for Azure Container Registry
-        registry = 'azjenkinsvmcr.azurecr.io'
-        imageName = 'nodejs-app'
-        containerPort = 3000
-        webAppName = 'jenkinsdeployment'
-        resourceGroupName = 'jenkins-rg' // Azure Resource Group
+        dockerImage = 'azjenkinsvmcr.azurecr.io/nodejs-app' // Name of your Docker image
+        appName = 'jenkinsdeployment' // Azure Web App name
+        resourceGroup = 'jenkins-rg' // Azure Resource Group
+        dockerfilePath = './Dockerfile' // Path to your Dockerfile in the repo
+        azureCredentials = credentials('AzureServicePrincipal') // Azure credentials ID configured in Jenkins
     }
     
     stages {
@@ -22,17 +22,29 @@ pipeline {
             steps {
                 script {
                     // Build Docker image using Dockerfile
-                    docker.build('${registry}/${imageName}:${env.BUILD_NUMBER}', '-f Dockerfile .')
+                    def dockerImage = docker.build(env.dockerImage, "--file ${env.dockerfilePath} .")
                     
                     // Login to Azure Container Registry
-                    docker.withRegistry('https://${registry}', env.registryCredential) {
+                    docker.withRegistry('https://azjenkinsvmcr.azurecr.io', env.registryCredential) {
                         // Push built Docker image to Azure Container Registry
-                        docker.image('${registry}/${imageName}:${env.BUILD_NUMBER}').push()
+                        dockerImage.push()
                     }
                 }
             }
         }
-    } 
+        stage('Deployment') {
+            steps {
+                script {
+                    // Azure CLI login using Service Principal credentials stored in Jenkins
+                    withCredentials([azureServicePrincipal(env.azureCredentials)]) {
+                        sh "az login --service-principal -u \${AZURE_CLIENT_ID} -p \${AZURE_CLIENT_SECRET} --tenant \${AZURE_TENANT_ID}"
+                        // Set custom Docker image for Azure Web App
+                        sh "az webapp config container set --name ${env.appName} --resource-group ${env.resourceGroup} --docker-custom-image-name ${env.dockerImage}:latest"
+                    }
+                }
+            }
+        }
+    }  
     
     post {
         success {
@@ -40,6 +52,10 @@ pipeline {
         }
         failure {
             echo 'Pipeline failed!'
+        }
+        always {
+            // Cleanup steps if necessary
+            cleanWs()
         }
     }
 }
