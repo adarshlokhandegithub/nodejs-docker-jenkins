@@ -37,8 +37,6 @@ pipeline {
                 script {
                     // Azure CLI login using Service Principal credentials stored in Jenkins
                     withCredentials([azureServicePrincipal(env.azureCredentials)]) {
-                        sh "az login --service-principal -u \${AZURE_CLIENT_ID} -p \${AZURE_CLIENT_SECRET} --tenant \${AZURE_TENANT_ID}"
-                        // Set custom Docker image for Azure Web App
                         sh "az webapp config container set --name ${env.appName} --resource-group ${env.resourceGroup} --docker-custom-image-name ${env.dockerImage}:latest"
                     }
                 }
