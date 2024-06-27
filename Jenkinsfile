@@ -7,7 +7,7 @@ pipeline {
         appName = 'jenkinsdeployment' // Azure Web App name
         resourceGroup = 'jenkins-rg' // Azure Resource Group
         dockerfilePath = './Dockerfile' // Path to your Dockerfile in the repo
-        azureCredentials = credentials('AzureServicePrincipal') // Azure credentials ID configured in Jenkins
+        azureCredentials = credentials('AzureServicePrincipal') // Azure Service Principal credentials
     }
     
     stages {
@@ -32,12 +32,18 @@ pipeline {
                 }
             }
         }
-        stage('Deployment') {
+
+        stage('Deploy') {
             steps {
                 script {
-                    // Azure CLI login using Service Principal credentials stored in Jenkins
+                    // Authenticate with Azure using Azure Service Principal
                     withCredentials([azureServicePrincipal(env.azureCredentials)]) {
-                        sh "az webapp config container set --name ${env.appName} --resource-group ${env.resourceGroup} --docker-custom-image-name ${env.dockerImage}:latest"
+                        sh "az login --service-principal -u ${AZURE_CLIENT_ID} -p ${AZURE_CLIENT_SECRET} --tenant ${AZURE_TENANT_ID}"
+                        
+                        // Deploy Docker image to Azure Web App
+                        sh "az webapp config container set --name ${env.appName} --resource-group ${env.resourceGroup} --docker-custom-image-name ${env.dockerImage}"
+                        // Restart Azure Web App
+                        sh "az webapp restart --name ${env.appName} --resource-group ${env.resourceGroup}"
                     }
                 }
             }
