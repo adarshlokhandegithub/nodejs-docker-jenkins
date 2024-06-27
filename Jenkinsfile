@@ -53,9 +53,5 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
-        always {
-            // Cleanup steps if necessary
-            cleanWs()
-        }
     }
 }
