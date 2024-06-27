@@ -3,10 +3,11 @@ pipeline {
     
     environment {
         registryCredential = 'ACR' // Credential ID for Azure Container Registry
-        dockerImage = 'azjenkinsvmcr.azurecr.io/node-js-app' // Name of your Docker image
-        //appName = 'node-js-app' // Azure Web App name
-        resourceGroup = 'jenkins-rg' // Azure Resource Group
-        dockerfilePath = './Dockerfile' // Path to your Dockerfile in the repo
+        registry = 'azjenkinsvmcr.azurecr.io'
+        imageName = 'nodejs-app'
+        containerPort = 3000
+        webAppName = 'jenkinsdeployment'
+        resourceGroupName = 'jenkins-rg' // Azure Resource Group
     }
     
     stages {
@@ -21,17 +22,29 @@ pipeline {
             steps {
                 script {
                     // Build Docker image using Dockerfile
-                    def dockerImage = docker.build(env.dockerImage, "--file ${env.dockerfilePath} .")
+                    docker.build("${registry}/${imageName}:${env.BUILD_NUMBER}", '-f Dockerfile .')
                     
                     // Login to Azure Container Registry
-                    docker.withRegistry('https://azjenkinsvmcr.azurecr.io', env.registryCredential) {
+                    docker.withRegistry('https://${registry}', env.registryCredential) {
                         // Push built Docker image to Azure Container Registry
-                        dockerImage.push()
+                        docker.image("${registry}/${imageName}:${env.BUILD_NUMBER}").push()
                     }
                 }
             }
         }
-    }  
+
+        stage('Deploy to Azure Web App') {
+            steps {
+                script {
+                    // Deploy Docker image to Azure Web App
+                    sh "az webapp config container set --name ${webAppName} --resource-group ${resourceGroupName} --docker-custom-image-name ${registry}/${imageName}:${env.BUILD_NUMBER}"
+
+                    // Restart Azure Web App to apply changes
+                    sh "az webapp restart --name ${webAppName} --resource-group ${resourceGroupName}"
+                }
+            }
+        }
+    } 
     
     post {
         success {
