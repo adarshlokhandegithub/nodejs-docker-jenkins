@@ -7,7 +7,7 @@ pipeline {
         appName = 'jenkinsdeployment' // Azure Web App name
         resourceGroup = 'jenkins-rg' // Azure Resource Group
         dockerfilePath = './Dockerfile' // Path to your Dockerfile in the repo
-        azureCredentials = credentials('AzureServicePrincipal') // Azure Service Principal credentials
+        azureCredentials = 'AzureServicePrincipal' // Azure Service Principal credentials
     }
     
     stages {
