@@ -22,12 +22,12 @@ pipeline {
             steps {
                 script {
                     // Build Docker image using Dockerfile
-                    docker.build("${registry}/${imageName}:${env.BUILD_NUMBER}", '-f Dockerfile .')
+                    docker.build('${registry}/${imageName}:${env.BUILD_NUMBER}', '-f Dockerfile .')
                     
                     // Login to Azure Container Registry
                     docker.withRegistry('https://${registry}', env.registryCredential) {
                         // Push built Docker image to Azure Container Registry
-                        docker.image("${registry}/${imageName}:${env.BUILD_NUMBER}").push()
+                        docker.image('${registry}/${imageName}:${env.BUILD_NUMBER}').push()
                     }
                 }
             }
